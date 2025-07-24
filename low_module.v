@@ -47,18 +47,19 @@ module low_module(input wire reset, input wire clk, inout tri1 onewire_bus, outp
 					counter_running <= 0;
 					threshold <= 0;
 				end
-			STATE_BIT_RECEPTION:
+				STATE_BIT_RECEPTION:
 				begin
+					bus_pulldown = 1'bz;
 					in_buffer = in_buffer >> 1;
 					in_buffer[7] = onewire_bus;
-					in_count = in_count + 1;
+					in_count <= in_count + 1;
 					state <= STATE_INITIALIZED;
 					if (onewire_bus) begin
 						counter <= 0;
 						counter_running <= 0;
 						threshold <= 0;
 					end;
-					if (in_count == 8) begin
+					if (in_count == 7) begin
 						out_byte <= in_buffer;
 						finished <= 1;
 						in_count <= 0;
@@ -76,6 +77,11 @@ module low_module(input wire reset, input wire clk, inout tri1 onewire_bus, outp
 			counter_running <= 1;
 			threshold <= 30;
 			state <= STATE_BIT_RECEPTION;
+			if (direction) begin
+				if (out_buffer[0]) bus_pulldown <= 1'bz;
+				else bus_pulldown <= 1'b0;
+				out_buffer = out_buffer >> 1;
+			end;
 		end;
 	end;
 	
@@ -91,5 +97,8 @@ module low_module(input wire reset, input wire clk, inout tri1 onewire_bus, outp
 			threshold <= 0;
 		end;
 	end;
-		
+	
+	always @ (posedge next_strobe) begin
+		out_buffer <= in_byte;
+	end;
 endmodule;
